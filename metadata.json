@@ -1,0 +1,5 @@
+{
+  "name": "Copy of Gemini Options Dashboard",
+  "description": "A sophisticated dashboard to monitor and manage a simulated BTC daily options trading bot. It provides real-time position tracking, P&L analysis, configuration management, and AI-powered market insights.",
+  "requestFramePermissions": []
+}
