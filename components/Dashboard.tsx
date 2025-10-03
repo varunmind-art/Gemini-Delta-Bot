@@ -1,9 +1,10 @@
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTradingBot } from '../hooks/useTradingBot';
 import { Trade, TradeStatus, BotConfig } from '../types';
-import { SettingsIcon, PowerIcon, SparklesIcon, PlayIcon, PauseIcon } from './icons';
+import { SettingsIcon, PowerIcon, SparklesIcon, PlayIcon, PauseIcon, WalletIcon, ChartBarIcon, ClockIcon, CheckCircleIcon } from './icons';
 import { getMarketAnalysis } from '../services/geminiService';
+import { getServerIpAddress } from '../services/deltaService';
 
 const Header: React.FC<{
   onKillSwitch: () => void;
@@ -41,10 +42,17 @@ const Header: React.FC<{
   </header>
 );
 
-const SummaryCard: React.FC<{ title: string; value: string; color: string }> = ({ title, value, color }) => (
-  <div className="bg-gray-800 p-4 rounded-lg shadow-md flex-1">
-    <h3 className="text-sm text-gray-400 font-medium">{title}</h3>
-    <p className={`text-2xl font-bold ${color}`}>{value}</p>
+const SummaryCard: React.FC<{ title: string; value: string; color?: string; isLoading?: boolean, icon?: React.ReactNode }> = ({ title, value, color, isLoading = false, icon }) => (
+  <div className="bg-gray-800 p-4 rounded-lg shadow-md flex items-center space-x-4">
+    {icon && <div className="p-3 bg-gray-700/50 rounded-full">{icon}</div>}
+    <div className="flex-1">
+        <h3 className="text-sm text-gray-400 font-medium">{title}</h3>
+        {isLoading ? (
+            <div className="h-8 mt-1 w-3/4 bg-gray-700 animate-pulse rounded"></div>
+        ) : (
+            <p className={`text-2xl font-bold ${color || 'text-white'}`}>{value}</p>
+        )}
+    </div>
   </div>
 );
 
@@ -173,8 +181,22 @@ const AnalysisModal: React.FC<{analysis: string; isLoading: boolean; onClose: ()
     </div>
 );
 
+const Footer: React.FC = () => {
+    const [ip, setIp] = useState('Loading...');
+
+    useEffect(() => {
+        getServerIpAddress().then(setIp);
+    }, []);
+
+    return (
+        <footer className="bg-gray-800 p-3 text-center text-xs text-gray-500 border-t border-gray-700">
+            Bot Deployed on AWS Lightsail | Whitelisted Static IP: <span className="font-mono text-gray-400">{ip}</span>
+        </footer>
+    )
+}
+
 const Dashboard: React.FC = () => {
-  const { trades, logs, config, currentTime, isBotRunning, updateConfig, squareOffAll, manualSquareOff, toggleBot } = useTradingBot();
+  const { trades, logs, config, currentTime, isBotRunning, walletBalance, updateConfig, squareOffAll, manualSquareOff, toggleBot } = useTradingBot();
   const [showConfig, setShowConfig] = useState(false);
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [analysisResult, setAnalysisResult] = useState('');
@@ -206,10 +228,32 @@ const Dashboard: React.FC = () => {
         currentTime={currentTime}
       />
       <main className="flex-1 p-6 overflow-y-auto space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <SummaryCard title="Total P&L" value={`${totalPnl.toFixed(2)}`} color={totalPnl >= 0 ? 'text-green-500' : 'text-red-500'} />
-          <SummaryCard title="Active P&L" value={`${activePnl.toFixed(2)}`} color={activePnl >= 0 ? 'text-green-500' : 'text-red-500'} />
-          <SummaryCard title="Booked P&L" value={`${bookedPnl.toFixed(2)}`} color={bookedPnl >= 0 ? 'text-green-500' : 'text-red-500'} />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <SummaryCard 
+                title="Wallet Balance" 
+                value={walletBalance ? `${walletBalance.total.toFixed(2)} ${walletBalance.currency}` : '...'}
+                color="text-brand-blue"
+                isLoading={!walletBalance}
+                icon={<WalletIcon className="w-6 h-6 text-brand-blue" />}
+            />
+            <SummaryCard 
+                title="Total P&L" 
+                value={`${totalPnl.toFixed(2)}`} 
+                color={totalPnl >= 0 ? 'text-green-500' : 'text-red-500'} 
+                icon={<ChartBarIcon className={`w-6 h-6 ${totalPnl >= 0 ? 'text-green-500' : 'text-red-500'}`} />}
+            />
+            <SummaryCard 
+                title="Active P&L" 
+                value={`${activePnl.toFixed(2)}`} 
+                color={activePnl >= 0 ? 'text-green-500' : 'text-red-500'}
+                icon={<ClockIcon className={`w-6 h-6 ${activePnl >= 0 ? 'text-green-500' : 'text-red-500'}`} />}
+            />
+            <SummaryCard 
+                title="Booked P&L" 
+                value={`${bookedPnl.toFixed(2)}`} 
+                color={bookedPnl >= 0 ? 'text-green-500' : 'text-red-500'}
+                icon={<CheckCircleIcon className={`w-6 h-6 ${bookedPnl >= 0 ? 'text-green-500' : 'text-red-500'}`} />}
+            />
         </div>
         
         <div className="space-y-6">
@@ -222,6 +266,7 @@ const Dashboard: React.FC = () => {
         </div>
 
       </main>
+      <Footer />
       {showConfig && <ConfigPanel config={config} onUpdate={updateConfig} onClose={() => setShowConfig(false)} />}
       {showAnalysis && <AnalysisModal analysis={analysisResult} isLoading={isAnalysisLoading} onClose={() => setShowAnalysis(false)} />}
     </div>

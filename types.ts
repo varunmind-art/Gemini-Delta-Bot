@@ -43,3 +43,9 @@ export interface BotConfig {
   reentryCutoffHour: number;
   noTradeOnThursday: boolean;
 }
+
+export interface WalletBalance {
+  total: number;
+  available: number;
+  currency: string;
+}

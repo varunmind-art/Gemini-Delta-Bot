@@ -1,7 +1,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Trade, TradeStatus, TradeType, BotConfig } from '../types';
+import { Trade, TradeStatus, TradeType, BotConfig, WalletBalance } from '../types';
 import { DEFAULT_CONFIG } from '../constants';
+import { getWalletBalance } from '../services/deltaService';
 
 const IST_OFFSET = 5.5 * 60 * 60 * 1000;
 
@@ -11,6 +12,7 @@ export const useTradingBot = () => {
   const [logs, setLogs] = useState<string[]>([]);
   const [isBotRunning, setIsBotRunning] = useState<boolean>(true);
   const [currentTime, setCurrentTime] = useState<Date>(new Date(new Date().getTime() + IST_OFFSET));
+  const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null);
 
   const tradesRef = useRef(trades);
   tradesRef.current = trades;
@@ -23,6 +25,16 @@ export const useTradingBot = () => {
     const timestamp = now.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false });
     setLogs(prev => [`[${timestamp}] ${message}`, ...prev.slice(0, 100)]);
   }, []);
+
+  useEffect(() => {
+    addLog("Connecting to exchange...");
+    getWalletBalance().then(balance => {
+      setWalletBalance(balance);
+      addLog(`Wallet balance loaded: ${balance.total.toFixed(2)} ${balance.currency}.`);
+    }).catch(err => {
+        addLog("Error: Could not load wallet balance.");
+    });
+  }, [addLog]);
 
   const updateTrade = useCallback((id: string, updates: Partial<Trade>) => {
     setTrades(prevTrades =>
@@ -167,6 +179,7 @@ export const useTradingBot = () => {
     logs,
     currentTime,
     isBotRunning,
+    walletBalance,
     updateConfig,
     squareOffAll,
     manualSquareOff,
