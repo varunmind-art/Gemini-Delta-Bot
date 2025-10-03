@@ -19,4 +19,12 @@
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }
+  "scripts": {
+   "dev:frontend": "vite",
+   "dev:backend": "cd backend && npm run dev",
+   "build:frontend": "vite build",
+   "build:backend": "cd backend && npm run build",
+   "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+   "build": "npm run build:frontend && npm run build:backend"
+  }
 }
